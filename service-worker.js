@@ -4,7 +4,7 @@
  * Сервис-воркер, обеспечивающий оффлайновую работу избранного
  */
 
-const CACHE_VERSION = '1.0.3';
+const CACHE_VERSION = '1.0.4';
 
 const APP_URLS_TO_CACHE = [
     'https://yastatic.net/jquery/3.1.0/jquery.min.js',
@@ -184,7 +184,8 @@ function fetchWithFallbackToCache(request) {
 
 // Обработать сообщение от клиента
 const messageHandlers = {
-    'favorite:add': handleFavoriteAdd
+    'favorite:add': handleFavoriteAdd,
+    'favorite:remove': handleFavoriteRemove
 };
 
 function handleMessage(eventData) {
@@ -213,6 +214,24 @@ function handleFavoriteAdd(id, data) {
                     return Promise.all(
                         responses.map(response => cache.put(response.url, response))
                     );
+                });
+        });
+}
+
+
+// Обработать сообщение об удалении картинки из избранного
+function handleFavoriteRemove(id, data) {
+    return caches.open(CACHE_VERSION)
+        .then(cache => {
+            const urls = [].concat(
+                data.fallback,
+                (data.sources || []).map(item => item.url)
+            );
+
+            return Promise
+                .all(urls.map(url => cache.delete(url)))
+                .catch((response) => {
+                    console.log('[ServiceWorker] Can\'t remove from cache:', id);
                 });
         });
 }
