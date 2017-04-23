@@ -4,13 +4,26 @@
  * Сервис-воркер, обеспечивающий оффлайновую работу избранного
  */
 
-const CACHE_VERSION = '1.0.2';
+const CACHE_VERSION = '1.0.3';
+
+const APP_URLS_TO_CACHE = [
+    'https://yastatic.net/jquery/3.1.0/jquery.min.js',
+    '/assets/star.svg',
+    '/assets/blocks.js',
+    '/assets/style.css',
+    '/assets/templates.js',
+    '/vendor/bem-components-dist-5.0.0/touch-phone/bem-components.dev.css',
+    '/vendor/bem-components-dist-5.0.0/touch-phone/bem-components.dev.js',
+    '/vendor/kv-keeper.js-1.0.4/kv-keeper.js',
+    '/gifs.html'
+];
 
 importScripts('./vendor/kv-keeper.js-1.0.4/kv-keeper.js');
 
 
 self.addEventListener('install', event => {
     const promise = preCacheAllFavorites()
+        .then(() => preCacheAllResources())
         // Вопрос №1: зачем нужен этот вызов?
         .then(() => self.skipWaiting())
         .then(() => console.log('[ServiceWorker] Installed!'));
@@ -109,6 +122,15 @@ function getFavoriteById(id) {
             resolve(images);
         });
     });
+}
+
+// Положить в новый кеш все ресурсы приложения
+function preCacheAllResources() {
+    return caches.open(CACHE_VERSION)
+        .then(cache => {
+	    console.log('[ServiceWorker] Adding application resources to cache.');
+            return cache.addAll(APP_URLS_TO_CACHE);
+        });
 }
 
 // Удалить неактуальный кеш
