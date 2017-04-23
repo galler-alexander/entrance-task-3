@@ -4,7 +4,7 @@
  * Сервис-воркер, обеспечивающий оффлайновую работу избранного
  */
 
-const CACHE_VERSION = '1.0.1';
+const CACHE_VERSION = '1.0.2';
 
 importScripts('./vendor/kv-keeper.js-1.0.4/kv-keeper.js');
 
@@ -25,7 +25,7 @@ self.addEventListener('activate', event => {
             self.clients.claim();
 
             console.log('[ServiceWorker] Activated!');
-        });
+        }).catch(err => console.log('[ServiceWorker] Don\'t Activated!', err));
 
     event.waitUntil(promise);
 });
@@ -38,8 +38,7 @@ self.addEventListener('fetch', event => {
 
     let response;
     if (needStoreForOffline(cacheKey)) {
-        response = caches.match(cacheKey)
-            .then(cacheResponse => cacheResponse || fetchAndPutToCache(cacheKey, event.request));
+        response = fetchAndPutToCache(cacheKey, event.request);
     } else {
         response = fetchWithFallbackToCache(event.request);
     }
@@ -65,12 +64,16 @@ function preCacheAllFavorites() {
                 .then(cache => {
                     return Promise.all(
                         responses.map(response => cache.put(response.url, response))
-                    );
+                    ).then(() => console.log('[ServiceWorker] Adding favorites to cache.'))
+                        .catch(err =>
+                            console.error('[ServiceWorker] Add favorites to cache error:', err)
+                        );
                 });
         });
 }
 
 // Извлечь из БД добавленные в избранное картинки
+// Возвращает promise массив urls на картинки в избранном
 function getAllFavorites() {
     return new Promise((resolve, reject) => {
         KvKeeper.getKeys((err, keys) => {
